@@ -32,8 +32,10 @@ module BgS3uploadable
         record.save validate: false
       end
     ensure
-      f.close
-      f.unlink
+      if f
+        f.close
+        f.unlink
+      end
     end
   end
 end
