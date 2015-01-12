@@ -9,6 +9,17 @@ module BgS3uploadable
       s3 = AWS::S3.new
       bucket = s3.buckets[ENV['S3_BUCKET']]
       obj = bucket.objects[key]
+
+      unless obj.exists?
+        # This file has already been auto-deleted. There's nothing we can do
+        # anymore.
+        record.class.transaction do
+          record.send(:write_attribute, :"#{attachment}_s3key", nil)
+          record.save validate: false
+        end
+        return
+      end
+
       obj.read do |chunk|
         f.write chunk
       end
