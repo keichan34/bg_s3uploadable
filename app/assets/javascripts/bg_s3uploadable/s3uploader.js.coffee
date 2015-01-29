@@ -7,6 +7,12 @@ draganddrop = () ->
   else
     @draggable
 
+window.s3uploaderMessages =
+  signed_url: {}
+
+window.s3uploaderCallbacks =
+  finished: (form, key) ->
+
 window.s3uploaderInstall = () ->
   $('.file-upload').each () ->
     form = $ this
@@ -51,6 +57,7 @@ window.s3uploaderInstall = () ->
           data:
             doc:
               title: data.files[0].name
+              size:  data.files[0].size
           success: (signature) ->
             data.formData =
               key: signature.key
@@ -63,6 +70,14 @@ window.s3uploaderInstall = () ->
 
             data.submit()
 
+          error: (jqXHR, textStatus, errorThrown) ->
+            response = jqXHR.responseJSON
+            reader.abort()
+            setImageURI()
+
+            alert window.s3uploaderMessages.signed_url[response.error_description]
+            document.location.reload()
+
       send: (e, data) ->
         form.find('.progress').fadeIn()
 
@@ -71,17 +86,16 @@ window.s3uploaderInstall = () ->
         setProgress percent
 
       fail: (e, data) ->
-        console.log "Failure."
+        alert "The upload failed for an unspecified reason. Please check that the image is less than 30 megabytes, then try again."
+        document.location.reload()
 
       success: (data) ->
         key = $(data).find('Key').text()
         $s3key_field.val key
 
-        # uri = "/s3/uploaded_image?key=#{key}"
-        # setImageURI uri
-
-        # form.parents('form').submit()
         form.hide()
+        window.s3uploaderCallbacks.finished form, key
+
       done: (e, data) ->
         form.find('.progress').fadeOut 300, () ->
           setProgress 0

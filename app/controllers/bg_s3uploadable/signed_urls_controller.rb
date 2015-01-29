@@ -6,7 +6,7 @@ module BgS3uploadable
       render json: {
         policy: policy,
         signature: s3_upload_signature(policy),
-        key: "uploads/#{SecureRandom.uuid}/#{params[:doc][:title]}",
+        key: "uploads/#{SecureRandom.uuid}/#{doc_params[:title]}",
         success_action_redirect: "/",
         upload_endpoint: "https://#{ENV['S3_BUCKET']}.s3.amazonaws.com",
         :AWSAccessKeyID => ENV['AWS_ACCESS_KEY_ID'],
@@ -26,6 +26,12 @@ module BgS3uploadable
       presign = AWS::S3::PresignV4.new obj
 
       redirect_to presign.presign(:get, expires: 5.minutes.from_now.to_i, secure: true).to_s
+    end
+
+    protected
+
+    def s3uploadable_controller?
+      true
     end
 
     private
@@ -55,6 +61,10 @@ module BgS3uploadable
           policy
         )
       ).gsub(/\n/, '')
+    end
+
+    def doc_params
+      params.require(:doc).permit :title, :size
     end
   end
 end
