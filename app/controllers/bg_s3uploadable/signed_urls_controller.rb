@@ -8,7 +8,7 @@ module BgS3uploadable
         signature: s3_upload_signature(policy),
         key: "uploads/#{SecureRandom.uuid}/#{doc_params[:title]}",
         success_action_redirect: "/",
-        upload_endpoint: "https://#{ENV['S3_BUCKET']}.s3.amazonaws.com",
+        upload_endpoint: "https://#{s3_bucket}.s3.amazonaws.com",
         :AWSAccessKeyID => ENV['AWS_ACCESS_KEY_ID'],
       }
     end
@@ -20,7 +20,7 @@ module BgS3uploadable
       end
 
       s3 = AWS::S3.new
-      bucket = s3.buckets[ENV['S3_BUCKET']]
+      bucket = s3.buckets[s3_bucket]
       obj = bucket.objects[params[:key]]
 
       presign = AWS::S3::PresignV4.new obj
@@ -34,6 +34,12 @@ module BgS3uploadable
       true
     end
 
+    # The bucket this controller will pre-sign uploads to. Defaults to
+    # ENV["S3_BUCKET"].
+    def s3_bucket
+      ENV["S3_BUCKET"]
+    end
+
     private
 
     # generate the policy document that amazon is expecting.
@@ -42,7 +48,7 @@ module BgS3uploadable
         {
           expiration: 30.minutes.from_now.utc.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
           conditions: [
-            { bucket: ENV['S3_BUCKET'] },
+            { bucket: s3_bucket },
             { acl: 'private' },
             ["starts-with", "$key", "uploads/"],
             { success_action_status: '201' },
